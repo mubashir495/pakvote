@@ -1,0 +1,26 @@
+{
+  "name": "votingsystem",
+  "version": "1.0.0",
+  "description": "The Online Voting System is designed to make elections in Pakistan easier, faster, and fully digital.",
+  "repository": {
+    "type": "git",
+    "url": "online voting system"
+  },
+  "license": "ISC",
+  "author": "Muhammad Mubashir Yaseen",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "server": "nodemon run server",
+    "test": "nodemon run text.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "encryption": "^0.0.1",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.4",
+    "nodemon": "^3.1.11",
+    "slugify": "^1.6.6"
+  }
+}
