@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const ConstituancySchema = new mongoose.Schema({
+const DivisionSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -15,11 +15,11 @@ const ConstituancySchema = new mongoose.Schema({
   },
  province_id: {
   type: mongoose.Schema.Types.ObjectId,
-  ref: "Tehsil",
+  ref: "Province",
   required: true
 }
 }, {
   timestamps: true
 });
 
-export default mongoose.model("Constituancy", ConstituancySchema);
+export default mongoose.model("Division", DivisionSchema);

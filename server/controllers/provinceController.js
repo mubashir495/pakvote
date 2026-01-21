@@ -41,7 +41,6 @@ export const getAllProvinces = async (req, res) => {
   }
 };
 
-
 export const getProvinceById = async (req, res) => {
   try {
     const province = await Province.findById(req.params.id);
@@ -59,15 +58,9 @@ export const getProvinceById = async (req, res) => {
   }
 };
 
-/**
- * @desc    Update Province
- * @route   PUT /api/provinces/:id
- * @access  Admin
- */
 export const updateProvince = async (req, res) => {
   try {
     const { name } = req.body;
-
     const province = await Province.findById(req.params.id);
     if (!province) {
       return res.status(404).json({ message: "Province not found" });
@@ -87,11 +80,6 @@ export const updateProvince = async (req, res) => {
   }
 };
 
-/**
- * @desc    Delete Province
- * @route   DELETE /api/provinces/:id
- * @access  Admin
- */
 export const deleteProvince = async (req, res) => {
   try {
     const province = await Province.findById(req.params.id);

@@ -13,9 +13,9 @@ const DistrictSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
- province_id: {
+ division_id: {
   type: mongoose.Schema.Types.ObjectId,
-  ref: "Province",
+  ref: "Division",
   required: true
 }
 }, {
