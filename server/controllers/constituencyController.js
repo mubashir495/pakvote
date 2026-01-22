@@ -1,11 +1,11 @@
-import Constituancy from "../models/Constituency.js";
+import Constituency from "../models/Constituency.js";
 import slugify from "slugify";
 
 // Create a new Constituancy
 export const createConstituency = async (req, res) => {
   try {
     const { name, tehsil_id } = req.body;
-    const existing = await Constituancy.findOne({ name });
+    const existing = await Constituency.findOne({ name });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -13,7 +13,7 @@ export const createConstituency = async (req, res) => {
       });
     }
 
-const constituancy = new Constituancy({
+const constituancy = new Constituency({
       name,
       slug: slugify(name, { lower: true }),
       tehsil_id,
@@ -45,7 +45,7 @@ res.status(201).json({message:"Constitunecy Successfully Add" ,data:Constituenci
 // Get all Constituancies
 export const getAllConstituencies = async (req, res) => {
   try {
-    const constituancies = await Constituancy.find().populate("tehsil_id", "name");
+    const constituancies = await Constituency.find().populate("tehsil_id", "name");
 
     res.status(200).json({
       success: true,
@@ -63,7 +63,7 @@ export const getAllConstituencies = async (req, res) => {
 // Get single Constituancy by ID
 export const getConstituencyById = async (req, res) => {
   try {
-    const constituancy = await Constituancy.findById(req.params.id).populate(
+    const constituancy = await Constituency.findById(req.params.id).populate(
       "tehsil_id",
       "name"
     );
@@ -92,7 +92,7 @@ export const updateConstituency = async (req, res) => {
   try {
     const { name, tehsil_id } = req.body;
 
-    const constituancy = await Constituancy.findById(req.params.id);
+    const constituancy = await Constituency.findById(req.params.id);
     if (!constituancy) {
       return res.status(404).json({
         success: false,
@@ -108,7 +108,7 @@ export const updateConstituency = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: constituancy,
+      data: constituency,
     });
   } catch (error) {
     res.status(500).json({
@@ -121,7 +121,7 @@ export const updateConstituency = async (req, res) => {
 // Delete a Constituancy
 export const deleteConstituency = async (req, res) => {
   try {
-    const constituancy = await Constituancy.findById(req.params.id);
+    const constituancy = await Constituency.findById(req.params.id);
     if (!constituancy) {
       return res.status(404).json({
         success: false,
@@ -148,7 +148,7 @@ export const getConstituenciesByTehsil = async (req, res) => {
   try {
     const { tehsilId } = req.params;
 
-    const constituancies = await Constituancy.find({ tehsil_id: tehsilId });
+    const constituancies = await Constituency.find({ tehsil_id: tehsilId });
 
     res.status(200).json({
       success: true,

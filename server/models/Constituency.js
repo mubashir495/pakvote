@@ -22,4 +22,4 @@ const ConstituancySchema = new mongoose.Schema({
   timestamps: true
 });
 
-export default mongoose.model("Constituancy", ConstituancySchema);
+export default mongoose.model("Constituency", ConstituancySchema);
