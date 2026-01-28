@@ -4,11 +4,12 @@ import jwt from "jsonwebtoken";
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role },
+    { id: user._id, role: user.role, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "1d" } 
   );
 };
+const secret =    process.env.JWT_SECRET;
 
 export const registerUser = async (req, res) => {
   try {
@@ -38,11 +39,8 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    if (
-      !Number.isInteger(cnic_no) ||
-      cnic_no < 1000000000000 ||
-      cnic_no > 9999999999999
-    ) {
+    // ✅ CNIC as string validation
+    if (!/^[0-9]{13}$/.test(cnic_no)) {
       return res.status(400).json({
         success: false,
         message: "CNIC must be exactly 13 digits",
@@ -105,7 +103,6 @@ export const loginUser = async (req, res) => {
     }
 
     const user = await User.findOne({ cnic_no });
-
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -114,7 +111,6 @@ export const loginUser = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -122,27 +118,43 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const token = generateToken(user);
+    // 🔐 Create JWT
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "2h" }
+    );
 
-    res.status(200).json({
+    // 🍪 Set cookie (FINAL version)
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+      path: "/",
+    });
+
+    // Remove password from response
+    const { password: _, ...userData } = user._doc;
+
+    return res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: userData, // no token sent to client
     });
   } catch (error) {
-    res.status(500).json({
+    console.error(error);
+    return res.status(500).json({
       success: false,
-      message: "Login failed",
-      error:error.message
+      message: "Server error",
     });
   }
 };
+
 
 
 export const verifyUser = async (req, res) => {

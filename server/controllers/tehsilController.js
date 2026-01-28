@@ -36,9 +36,22 @@ export const createTehsil = async (req, res) => {
 // Get all Tehsils
 export const getAllTehsils = async (req, res) => {
   try {
-    const tehsils = await Tehsil.find().populate("district_id", "name");
+    const tehsils = await Tehsil.find()
+      .populate({
+        path: "district_id",
+        select: "name slug division_id",
+        populate: {
+          path: "division_id",
+          select: "name slug province_id",
+          populate: {
+            path: "province_id",
+            select: "name slug",
+          },
+        },
+      })
+      .sort({ createdAt: -1 });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       count: tehsils.length,
       data: tehsils,

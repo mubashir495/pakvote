@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from 'cors';
 import { mongooseConection } from "./config/db.js";
 import ProvinceRoutes from "./routes/proviceRoutes.js"
 import DistrictRoutes from "./routes/districtRoutes.js"
@@ -8,14 +9,17 @@ import TehsilRoutes from "./routes/tehsilRoutes.js"
 import ConstituencyRoutes from "./routes/constituencyRoutes.js";
 import AuthRouter from "./routes/authRoutes.js";
 import HierarchyRoutes from "./routes/hierarchyRoutes.js";
+import { corsOptions } from "./middlewares/corsmiddlewares.js";
+import cookieParser from "cookie-parser";
 const app = express()
 dotenv.config()
 const PORT = process.env.PORT || 5050;
-mongooseConection()
+mongooseConection();
 
 
-
-app.use(express.json())
+app.use(cors(corsOptions));
+app.use(cookieParser());
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/division",DivisionRoutes);

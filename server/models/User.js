@@ -14,17 +14,18 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
 
-    cnic_no: {
-      type: Number,
-      required: true,
-      unique: true,
-      validate: {
-        validator: function (value) {
-          return value >= 1000000000000 && value <= 9999999999999;
-        },
-        message: "CNIC must be exactly 13 digits",
-      },
+ cnic_no: {
+  type: String,      
+  required: true,
+  unique: true,
+  trim: true,
+  validate: {
+    validator: function (value) {
+      return /^[0-9]{13}$/.test(value);
     },
+    message: "CNIC must be exactly 13 digits",
+  },
+},
 
     email: {
       type: String,

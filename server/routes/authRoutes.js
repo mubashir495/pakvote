@@ -9,11 +9,8 @@ import {
   deleteUser,
 } from "../controllers/userController.js";
 
-import {
-  protect,
-  adminOnly,
-  candidateOnly,
-} from "../middlewares/authmiddlewares.js";
+import { protect,} from "../middlewares/authMiddlewares.js";
+import { candidateOnly, partyOnly ,adminOnly} from "../middlewares/isRoleMiddleware.js";
 
 const router = express.Router();
 
@@ -27,7 +24,7 @@ router.delete("/:id", protect, adminOnly, deleteUser);
 router.get(
   "/candidate/dashboard",
   protect,
-  candidateOnly,
+candidateOnly,
   (req, res) => {
     res.status(200).json({
       success: true,
@@ -38,9 +35,21 @@ router.get(
 );
 
 router.get(
+  "/party/dashboard",
+  protect, 
+  partyOnly,
+  (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: "Welcome party Admin",
+      user: req.user,
+    });
+  }
+);
+router.get(
   "/admin/dashboard",
-  protect,
-  adminOnly,
+  protect,  
+  adminOnly, 
   (req, res) => {
     res.status(200).json({
       success: true,

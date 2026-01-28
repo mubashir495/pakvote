@@ -23,17 +23,9 @@ const constituancy = new Constituency({
 
     res.status(201).json({
       success: true,
-      message:"constitueny successfult add",
+      message:"Constituency successfully added",
       data: constituancy,
     });
-
-// const Constituencies =await Constituancy.create({
-//    name, 
-//    slug: slugify(name, { lower: true }),
-//    tehsil_id 
-// })
-// console.log(Constituancy)
-res.status(201).json({message:"Constitunecy Successfully Add" ,data:Constituencies})
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -45,7 +37,19 @@ res.status(201).json({message:"Constitunecy Successfully Add" ,data:Constituenci
 // Get all Constituancies
 export const getAllConstituencies = async (req, res) => {
   try {
-    const constituancies = await Constituency.find().populate("tehsil_id", "name");
+    const constituancies = await Constituency.find()
+      .populate({
+        path: "tehsil_id",
+        populate: {
+          path: "district_id",
+          populate: {
+            path: "division_id",
+            populate: {
+              path: "province_id"
+            }
+          }
+        }
+      });
 
     res.status(200).json({
       success: true,
@@ -63,10 +67,19 @@ export const getAllConstituencies = async (req, res) => {
 // Get single Constituancy by ID
 export const getConstituencyById = async (req, res) => {
   try {
-    const constituancy = await Constituency.findById(req.params.id).populate(
-      "tehsil_id",
-      "name"
-    );
+    const constituancy = await Constituency.findById(req.params.id)
+      .populate({
+        path: "tehsil_id",
+        populate: {
+          path: "district_id",
+          populate: {
+            path: "division_id",
+            populate: {
+              path: "province_id"
+            }
+          }
+        }
+      });
 
     if (!constituancy) {
       return res.status(404).json({
@@ -108,7 +121,7 @@ export const updateConstituency = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: constituency,
+      data: constituancy,
     });
   } catch (error) {
     res.status(500).json({

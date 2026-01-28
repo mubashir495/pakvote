@@ -7,7 +7,7 @@ export const createDistrict = async (req, res) => {
     const { name, division_id } = req.body;
 
     if (!name || !division_id) {
-      return res.status(401).json({ message: "Name and Division are required" });
+      return res.status(400).json({ message: "Name and Division are required" });
     }
 
     const slug = slugify(name, { lower: true });
@@ -38,18 +38,26 @@ export const createDistrict = async (req, res) => {
 export const getAllDistricts = async (req, res) => {
   try {
     const districts = await District.find()
-      .populate("province_id", "name slug")
+      .populate({
+        path: "division_id",
+        select: "name slug",
+        populate: {
+          path: "province_id",
+          select: "name slug",
+        },
+      })
       .sort({ createdAt: -1 });
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       count: districts.length,
-      data: districts
+      data: districts,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 export const getDistrictById = async (req, res) => {
   try {
