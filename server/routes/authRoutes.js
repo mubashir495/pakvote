@@ -7,6 +7,7 @@ import {
   getProfile,
   updateUser,
   deleteUser,
+  logoutUser
 } from "../controllers/userController.js";
 
 import { protect,} from "../middlewares/authMiddlewares.js";
@@ -20,7 +21,7 @@ router.get("/verify", protect, verifyUser);
 router.get("/profile", protect, getProfile);
 router.put("/profile", protect, updateUser);
 router.delete("/:id", protect, adminOnly, deleteUser);
-
+router.post("/logout",protect,logoutUser)
 router.get(
   "/candidate/dashboard",
   protect,

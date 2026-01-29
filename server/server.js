@@ -11,6 +11,7 @@ import AuthRouter from "./routes/authRoutes.js";
 import HierarchyRoutes from "./routes/hierarchyRoutes.js";
 import { corsOptions } from "./middlewares/corsmiddlewares.js";
 import cookieParser from "cookie-parser";
+import candidateApplicantRoutes from "./routes/candidateApplicantRoutes.js"
 const app = express()
 dotenv.config()
 const PORT = process.env.PORT || 5050;
@@ -29,6 +30,9 @@ app.use("/api/tehsil",TehsilRoutes)
 app.use("/api/constituency",ConstituencyRoutes);
 app.use("/api/auth",AuthRouter)
 app.use("/api/hierarchy/",HierarchyRoutes)
+
+// aplicant routes 
+app.use("/api/candidateApplicant",candidateApplicantRoutes)
 app.listen(PORT, () => {
   console.log(` Server running at http://localhost:${PORT}`);
 });
