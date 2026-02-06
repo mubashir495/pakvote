@@ -11,7 +11,7 @@ const CandidateApplicantSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
-    Degree_Dcoments: {
+    Degree_Documents: {
       type: [String], 
       required: true, 
     },

@@ -10,7 +10,7 @@ import {
 } from "../controllers/candidateApplicantController.js";
 
 const router = express.Router();
-router.post("/", protect, upload.array("Degree_Dcoments", 5), addCandidateApplicant);
+router.post("/", protect, upload.array("degreesFiles", 5), addCandidateApplicant);
 router.delete("/:id", protect, deleteCandidateApplicant);
 router.get("/", getAllCandidatesApplicant);
 router.get("/party/:partyId", getCandidatesApplicantByParty);

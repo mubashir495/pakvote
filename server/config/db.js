@@ -8,6 +8,20 @@ export  async function mongooseConection() {
   await mongoose.connect(DATABASE_URL+DB_NAME)
   .catch(err => console.log(err))
   .then(()=>console.log("conection successfully"));
-
-};
-
+  try {
+    const db = mongoose.connection.db;
+    const collection = db.collection("symbols");
+    const indexes = await collection.indexes();
+    
+    for (const idx of indexes) {
+      if (idx.name !== "_id_") {
+        await collection.dropIndex(idx.name);
+      }
+    }
+  
+    await collection.createIndex({ name: 1 }, { unique: true });
+    
+  } catch (error) {
+  
+  }
+}
