@@ -13,6 +13,7 @@ import { corsOptions } from "./middlewares/corsmiddlewares.js";
 import cookieParser from "cookie-parser";
 import candidateApplicantRoutes from "./routes/candidateApplicantRoutes.js"
 import symbolRoutes from "./routes/symbolRoutes.js";
+import partySymbol from "./routes/partyApplicantRoutes.js"
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -22,9 +23,8 @@ const __dirname = path.dirname(__filename);
 const app = express()
 dotenv.config()
 const PORT = process.env.PORT || 5050;
+
 mongooseConection();
-
-
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
@@ -41,6 +41,7 @@ app.use("/api/constituency",ConstituencyRoutes);
 app.use("/api/auth",AuthRouter)
 app.use("/api/hierarchy/",HierarchyRoutes)
 app.use("/api/symbol",symbolRoutes)
+app.use("/api/partyApplicant",partySymbol)
 // aplicant routes 
 app.use("/api/candidateApplicant",candidateApplicantRoutes)
 app.listen(PORT, () => {

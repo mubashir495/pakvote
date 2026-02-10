@@ -119,3 +119,35 @@ export const symbolUpload = multer({
   storage: symbolStorage,
   fileFilter: symbolFileFilter,
 });
+
+const uploadDir = "uploads/party";
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // create folder if not exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+
+  filename: (req, file, cb) => {
+    const uniqueName =
+      Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueName + path.extname(file.originalname));
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpg|jpeg|png|pdf|doc|docx/;
+  const extName = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
+
+  if (extName) cb(null, true);
+  else cb(new Error("Only images, PDF or DOC files are allowed"));
+};
+
+export const partyUpload = multer({
+  storage,
+  fileFilter,
+});
