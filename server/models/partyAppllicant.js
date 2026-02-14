@@ -38,7 +38,6 @@ const PartyApplicantSchema = new mongoose.Schema(
       {
         name: { type: String, required: true },
         designation: { type: String, required: true },
-        cnic: { type: String, required: true },
         contact: { type: String },
       },
     ],

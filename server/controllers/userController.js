@@ -213,6 +213,48 @@ export const updateUser = async (req, res) => {
   }
 };
 
+export const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Hash password if updating
+    if (updates.password) {
+      const salt = await bcrypt.genSalt(10);
+      updates.password = await bcrypt.hash(updates.password, salt);
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Update failed",
+      error: error.message,
+    });
+  }
+};
+
 
 export const deleteUser = async (req, res) => {
   try {

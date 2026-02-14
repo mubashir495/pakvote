@@ -22,14 +22,7 @@ const PartySchema = new mongoose.Schema(
      type: mongoose.Schema.Types.ObjectId,
      ref: "Symbol",
 },
-    notes: {
-      type: String,
-      required: true,
-    },
-    reviewed_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-    },
+
   },
   { timestamps: true }
 );

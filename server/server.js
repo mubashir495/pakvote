@@ -16,7 +16,8 @@ import symbolRoutes from "./routes/symbolRoutes.js";
 import partySymbol from "./routes/partyApplicantRoutes.js"
 import path from "path";
 import { fileURLToPath } from "url";
-
+import CandidateRoutes from "./routes/candidateRoutes.js"
+import PartyRoutes from "./routes/partyRoutes.js"
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -42,6 +43,8 @@ app.use("/api/auth",AuthRouter)
 app.use("/api/hierarchy/",HierarchyRoutes)
 app.use("/api/symbol",symbolRoutes)
 app.use("/api/partyApplicant",partySymbol)
+app.use("/api/candidate",CandidateRoutes)
+app.use("/api/party",PartyRoutes)
 // aplicant routes 
 app.use("/api/candidateApplicant",candidateApplicantRoutes)
 app.listen(PORT, () => {
