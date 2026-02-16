@@ -104,14 +104,18 @@ export const updatePartyStatus = async (req, res) => {
     await applicant.save();
 
     //  Email notification
-    await sendEmail({
-      to: applicant.userId.email,
-      subject: `Party Application ${status.toUpperCase()}`,
-      text:
-        status === "approved"
-          ? `Congratulations! Your party "${applicant.party_name}" has been approved.`
-          : `Your party "${applicant.party_name}" was rejected.\nReason: ${rejection_reason}`,
-    });
+    if (applicant.userId && applicant.userId.email) {
+      await sendEmail({
+        to: applicant.userId.email,
+        subject: `Party Application ${status.toUpperCase()}`,
+        text:
+          status === "approved"
+            ? `Congratulations! Your party "${applicant.party_name}" has been approved.`
+            : `Your party "${applicant.party_name}" was rejected.\nReason: ${rejection_reason}`,
+      });
+    } else {
+      console.warn(`Skipping email notification for applicant ${applicant._id}: User or email not found.`);
+    }
 
     res.json({
       message: `Application ${status} successfully`,

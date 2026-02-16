@@ -1,5 +1,7 @@
 import Symbol from "../models/Symbol.js";
 import fs from "fs";
+import Party from "../models/Party.js";
+import Candidate from "../models/Candidate.js";
 
 /* ================= CREATE SYMBOL ================= */
 export const createSymbol = async (req, res) => {
@@ -35,9 +37,30 @@ export const createSymbol = async (req, res) => {
 };
 
 /* ================= GET ALL SYMBOLS ================= */
+/* ================= GET ALL SYMBOLS ================= */
 export const getAllSymbols = async (req, res) => {
   try {
-    const symbols = await Symbol.find().sort({ createdAt: -1 });
+    let query = {};
+
+    // If 'available=true' is passed, filter out assigned symbols
+    if (req.query.available === 'true') {
+      const assignedParties = await Party.find({}, 'party_Symbol');
+      const assignedCandidates = await Candidate.find({}, 'symbol_id');
+      
+      const distinctPartySymbols = assignedParties
+        .map(p => p.party_Symbol?.toString())
+        .filter(Boolean);
+        
+      const distinctCandidateSymbols = assignedCandidates
+        .map(c => c.symbol_id?.toString())
+        .filter(Boolean);
+
+      const assignedSymbolIds = [...new Set([...distinctPartySymbols, ...distinctCandidateSymbols])];
+      
+      query._id = { $nin: assignedSymbolIds };
+    }
+
+    const symbols = await Symbol.find(query).sort({ createdAt: -1 });
     res.status(200).json({ success: true, count: symbols.length, data: symbols });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

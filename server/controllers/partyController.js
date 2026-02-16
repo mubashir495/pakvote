@@ -1,30 +1,26 @@
 import Party from "../models/Party.js";
 import mongoose from "mongoose";
 
+// CREATE PARTY APPLICATION
+// CREATE PARTY (Final Approval)
 export const createParty = async (req, res) => {
   try {
-    const { party_name, party_admin_name, party_Symbol } = req.body;
+    const { userId, party_name, party_admin_name, party_Symbol } = req.body;
 
-    const userId = req.user?.id; // assuming JWT middleware sets req.user
-
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized. User not found." });
-    }
-
-    if (!party_name || !party_admin_name) {
+    // Validate required fields
+    if (!userId || !party_name || !party_admin_name || !party_Symbol) {
       return res.status(400).json({
-        message: "Party name and admin name are required",
+        message: "All fields (User, Party Name, Admin Name, Symbol) are required",
       });
     }
 
-    // Check if party already exists
+    // Check if Party Name already exists
     const existingParty = await Party.findOne({ party_name });
     if (existingParty) {
-      return res.status(400).json({
-        message: "Party with this name already exists",
-      });
+      return res.status(400).json({ message: "Party Name already taken" });
     }
 
+    // Create New Party
     const newParty = await Party.create({
       userId,
       party_name,
@@ -38,6 +34,7 @@ export const createParty = async (req, res) => {
       data: newParty,
     });
   } catch (error) {
+    console.error("Create Party Error:", error);
     res.status(500).json({
       message: "Server Error",
       error: error.message,
@@ -45,16 +42,17 @@ export const createParty = async (req, res) => {
   }
 };
 
+// GET ALL APPLICATIONS (ADMIN)
 export const getAllParties = async (req, res) => {
   try {
-    const parties = await Party.find()
-      .populate("userId", "name email")
-      .populate("party_Symbol");
+    const applicants = await Party.find()
+      .populate("userId", "name email") // 🔥 IMPORTANT FIX
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      count: parties.length,
-      data: parties,
+      count: applicants.length,
+      data: applicants,
     });
   } catch (error) {
     res.status(500).json({
@@ -64,68 +62,27 @@ export const getAllParties = async (req, res) => {
   }
 };
 
-
+// GET SINGLE APPLICATION
 export const getSingleParty = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Party ID" });
+      return res.status(400).json({ message: "Invalid Application ID" });
     }
 
-    const party = await Party.findById(id)
-      .populate("userId", "name email")
-      .populate("party_Symbol");
+    const applicant = await PartyApplicant.findById(id)
+      .populate("userId", "name email");
 
-    if (!party) {
-      return res.status(404).json({ message: "Party not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: party,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Server Error",
-      error: error.message,
-    });
-  }
-};
-
-
-export const updateParty = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { party_name, party_admin_name, party_Symbol } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Party ID" });
-    }
-
-    const party = await Party.findById(id);
-
-    if (!party) {
-      return res.status(404).json({ message: "Party not found" });
-    }
-
-    // Optional: Check if logged-in user owns this party
-    if (party.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: "Not authorized to update this party",
+    if (!applicant) {
+      return res.status(404).json({
+        message: "Application not found",
       });
     }
 
-    party.party_name = party_name || party.party_name;
-    party.party_admin_name = party_admin_name || party.party_admin_name;
-    party.party_Symbol = party_Symbol || party.party_Symbol;
-
-    const updatedParty = await party.save();
-
     res.status(200).json({
       success: true,
-      message: "Party updated successfully",
-      data: updatedParty,
+      data: applicant,
     });
   } catch (error) {
     res.status(500).json({
@@ -135,32 +92,74 @@ export const updateParty = async (req, res) => {
   }
 };
 
+// UPDATE STATUS (APPROVE / REJECT)
+export const updateParty = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["approved", "rejected", "pending"].includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status value",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Application ID",
+      });
+    }
+
+    const applicant = await PartyApplicant.findById(id);
+
+    if (!applicant) {
+      return res.status(404).json({
+        message: "Application not found",
+      });
+    }
+
+    applicant.status = status;
+    await applicant.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Application ${status} successfully`,
+      data: applicant,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
+
+
+// DELETE APPLICATION
 
 export const deleteParty = async (req, res) => {
   try {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Party ID" });
-    }
-
-    const party = await Party.findById(id);
-
-    if (!party) {
-      return res.status(404).json({ message: "Party not found" });
-    }
-
-    if (party.userId.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: "Not authorized to delete this party",
+      return res.status(400).json({
+        message: "Invalid Application ID",
       });
     }
 
-    await party.deleteOne();
+    const applicant = await PartyApplicant.findById(id);
+
+    if (!applicant) {
+      return res.status(404).json({
+        message: "Application not found",
+      });
+    }
+
+    await applicant.deleteOne();
 
     res.status(200).json({
       success: true,
-      message: "Party deleted successfully",
+      message: "Application deleted successfully",
     });
   } catch (error) {
     res.status(500).json({

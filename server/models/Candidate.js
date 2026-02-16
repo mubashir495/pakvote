@@ -21,7 +21,8 @@ const CandidateSchema = new mongoose.Schema(
     symbol_id:{
       type: mongoose.Schema.Types.ObjectId,
       ref: "Symbol", 
-      unique:true
+      required: false,
+      default: null
     }
   },
   { timestamps: true }

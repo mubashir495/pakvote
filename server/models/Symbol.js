@@ -6,11 +6,11 @@ const SymbolSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  image:{
-    type:String,
-    required :true,
+  image: {
+    type: String,
+    required: true,
     trim: true,
-}
+  },
 }, {
   timestamps: true
 });

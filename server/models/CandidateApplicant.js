@@ -30,9 +30,9 @@ const CandidateApplicantSchema = new mongoose.Schema(
       required: true,
     },
     status:{
-      type: Boolean,
-        required:true,
-        default: false
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending"
     }
   },
   { timestamps: true }

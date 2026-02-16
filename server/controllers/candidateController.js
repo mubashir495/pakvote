@@ -5,12 +5,21 @@ export const createCandidateApplicant = async (req, res) => {
   try {
     const { userId, party_id, applied_seats, symbol_id } = req.body;
 
-    if (!userId || !applied_seats || !symbol_id) {
+    if (!userId || !applied_seats) {
       return res.status(400).json({
         success: false,
-        message: "Required fields are missing",
+        message: "userId and applied_seats are required",
       });
     }
+
+    // For independent candidates, symbol_id is required
+    if (!party_id && !symbol_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Independent candidates must have a symbol",
+      });
+    }
+
     const alreadyApplied = await Candidate.findOne({ userId });
     if (alreadyApplied) {
       return res.status(409).json({
@@ -19,12 +28,15 @@ export const createCandidateApplicant = async (req, res) => {
       });
     }
 
-    const symbolUsed = await Candidate.findOne({ symbol_id });
-    if (symbolUsed) {
-      return res.status(409).json({
-        success: false,
-        message: "Symbol already assigned",
-      });
+    // Check if symbol is already used (only for independent candidates)
+    if (symbol_id) {
+      const symbolUsed = await Candidate.findOne({ symbol_id });
+      if (symbolUsed) {
+        return res.status(409).json({
+          success: false,
+          message: "Symbol already assigned",
+        });
+      }
     }
 
     // ✅ Create application
@@ -32,7 +44,7 @@ export const createCandidateApplicant = async (req, res) => {
       userId,
       party_id: party_id || null,
       applied_seats,
-      symbol_id,
+      symbol_id: symbol_id || null,
     });
 
     // ✅ Update user role → candidate
