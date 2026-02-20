@@ -1,26 +1,18 @@
 import Party from "../models/Party.js";
 import mongoose from "mongoose";
 
-// CREATE PARTY APPLICATION
-// CREATE PARTY (Final Approval)
 export const createParty = async (req, res) => {
   try {
     const { userId, party_name, party_admin_name, party_Symbol } = req.body;
-
-    // Validate required fields
     if (!userId || !party_name || !party_admin_name || !party_Symbol) {
       return res.status(400).json({
         message: "All fields (User, Party Name, Admin Name, Symbol) are required",
       });
     }
-
-    // Check if Party Name already exists
     const existingParty = await Party.findOne({ party_name });
     if (existingParty) {
       return res.status(400).json({ message: "Party Name already taken" });
     }
-
-    // Create New Party
     const newParty = await Party.create({
       userId,
       party_name,
@@ -46,7 +38,7 @@ export const createParty = async (req, res) => {
 export const getAllParties = async (req, res) => {
   try {
     const applicants = await Party.find()
-      .populate("userId", "name email") // 🔥 IMPORTANT FIX
+      .populate("userId", "name email") 
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -71,7 +63,7 @@ export const getSingleParty = async (req, res) => {
       return res.status(400).json({ message: "Invalid Application ID" });
     }
 
-    const applicant = await PartyApplicant.findById(id)
+    const applicant = await Party.findById(id)
       .populate("userId", "name email");
 
     if (!applicant) {
@@ -136,7 +128,6 @@ export const updateParty = async (req, res) => {
 
 
 // DELETE APPLICATION
-
 export const deleteParty = async (req, res) => {
   try {
     const { id } = req.params;
@@ -165,6 +156,41 @@ export const deleteParty = async (req, res) => {
     res.status(500).json({
       message: "Server Error",
       error: error.message,
+    });
+  }
+};
+
+// get party using userid 
+export const getPartyByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+     if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid User ID",
+      });
+    }
+    const party = await Party.findOne({ userId })
+      .populate("userId", "name email")
+      .populate("party_Symbol");
+
+    if (!party) {
+      return res.status(404).json({
+        success: false,
+        message: "No party found for this user",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: party,
+    });
+
+  } catch (error) {
+    console.error("Get Party By UserId Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
     });
   }
 };

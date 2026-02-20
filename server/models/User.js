@@ -7,25 +7,23 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
     father_name: {
       type: String,
       required: true,
       trim: true,
     },
-
- cnic_no: {
-  type: String,      
-  required: true,
-  unique: true,
-  trim: true,
-  validate: {
-    validator: function (value) {
-      return /^[0-9]{13}$/.test(value);
+    cnic_no: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      validate: {
+        validator: function (value) {
+          return /^[0-9]{13}$/.test(value);
+        },
+        message: "CNIC must be exactly 13 digits",
+      },
     },
-    message: "CNIC must be exactly 13 digits",
-  },
-},
 
     email: {
       type: String,
@@ -48,7 +46,7 @@ const UserSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["admin", "candidate", "user","party"],
+      enum: ["admin", "candidate", "user", "party"],
       default: "user",
     },
 
@@ -60,7 +58,7 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("User", UserSchema);
