@@ -1,6 +1,8 @@
 import Candidate from "../models/Candidate.js";
 import User from "../models/User.js";
 import Symbol from "../models/Symbol.js";
+import Party from "../models/Party.js";
+import mongoose from "mongoose";
 export const createCandidateApplicant = async (req, res) => {
   try {
     const { userId, party_id, applied_seats, symbol_id } = req.body;
@@ -133,10 +135,26 @@ export const getCandidateApplicantById = async (req, res) => {
   }
 };
 
-export const getPartyCandidates = async (req, res) => {
+export const getCandidatesByParty = async (req, res) => {
   try {
-    const candidates = await CandidateApplicant.find({
-      party_id: { $ne: null },
+    const { partyID } = req.params;
+
+    if (!partyID) {
+      return res.status(400).json({
+        success: false,
+        message: "Party ID is required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(partyID)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Party ID",
+      });
+    }
+
+    const candidates = await Candidate.find({
+      party_id: partyID,
     })
       .populate("userId", "name email")
       .populate("party_id", "name")
@@ -144,8 +162,10 @@ export const getPartyCandidates = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      total: candidates.length,
       data: candidates,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -284,52 +304,114 @@ export const getCandidateByUserId = async (req, res) => {
 };
 
 
-// GET candidates by constituency ID
-// export const getCandidatesByConstituency = async (req, res) => {
-//   try {
-//     const { constituencyId } = req.params;
-
-//     if (!constituencyId) {
-//       return res.status(400).json({ success: false, message: "Constituency ID is required" });
-//     }
-
-//     const candidates = await Candidate.find()
-//       .populate({
-//         path: "userId",
-//         match: { constituency_id: constituencyId }, 
-//         select: "name father_name cnic_no email constituency_id",
-//       })
-//       .populate("party_id", "name") 
-//       .populate("symbol_id", "name image"); 
-
-//     const filteredCandidates = candidates.filter(c => c.userId !== null);
-
-//     return res.status(200).json({ success: true, data: filteredCandidates });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ success: false, message: "Server Error", error: error.message });
-//   }
-// };
-
-
-// GET candidates by constituency ID
 export const getCandidatesByConstituency = async (req, res) => {
   try {
     const { constituencyId } = req.params;
 
     if (!constituencyId) {
-      return res.status(400).json({ success: false, message: "Constituency ID is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Constituency ID is required"
+      });
     }
-    const users = await User.find({ constituency_id: constituencyId }).select("_id");
-    const userIds = users.map(user => user._id);
-    const candidates = await Candidate.find({ userId: { $in: userIds } })
-      .populate("party_id", "name") 
-      .populate("symbol_id", "name image")
-      .populate("userId", "name father_name cnic_no email"); 
 
-    return res.status(200).json({ success: true, data: candidates });
+    const users = await User.find({ constituency_id: constituencyId }).select("_id");
+    const userIds = users.map(u => u._id);
+
+    const candidates = await Candidate.find({ userId: { $in: userIds } })
+      .populate({
+        path: "party_id",
+        select: "party_name party_Symbol",
+        populate: {
+          path: "party_Symbol",
+          select: "name image"
+        }
+      })
+      .populate("symbol_id", "name image")
+      .populate("userId", "name father_name cnic_no email");
+
+    const formatted = candidates.map(candidate => {
+      const isParty = candidate.party_id !== null;
+
+      return {
+        _id: candidate._id,
+        applied_seats: candidate.applied_seats,
+        user: candidate.userId,
+        party_name: isParty ? candidate.party_id.party_name : null,
+        symbol: isParty
+          ? candidate.party_id.party_Symbol
+          : candidate.symbol_id
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: formatted
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};
+
+
+export const getPartyCandidatesByUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid User ID",
+      });
+    }
+
+    // 🔹 Step 1: Find Party using userId
+    const party = await Party.findOne({ userId: userId });
+
+    if (!party) {
+      return res.status(404).json({
+        success: false,
+        message: "Party not found for this user",
+      });
+    }
+
+    // 🔹 Step 2: Find all candidates of that party
+   const candidates = await Candidate.find({
+  party_id: party._id,
+})
+  .populate({
+    path: "userId",
+    select: "name email constituency_id",
+    populate: {
+      path: "constituency_id",
+      select: "name",   
+      },
+  })
+  .populate("party_id", "party_name party_admin_name")
+  .populate("symbol_id", "name image");
+    res.status(200).json({
+      success: true,
+      total: candidates.length,
+      party: party.party_name,
+      data: candidates,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

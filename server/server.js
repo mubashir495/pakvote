@@ -20,6 +20,10 @@ import CandidateRoutes from "./routes/candidateRoutes.js"
 import PartyRoutes from "./routes/partyRoutes.js"
 import ContactRoutes from "./routes/contactRoutes.js"
 import ComplaintRoutes from "./routes/complaintRoutes.js"
+import VoteRoutes from "./routes/votesRoutes.js"
+
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,7 +55,7 @@ app.use("/api/party",PartyRoutes)
 app.use("/api/contect-us",ContactRoutes)
 app.use("/api/candidateApplicant",CandidateApplicantRoutes)
 app.use("/api/complaint", ComplaintRoutes);
-
+app.use("/api/vote", VoteRoutes);
 
 app.listen(PORT, () => {
   console.log(` Server running at http://localhost:${PORT}`);
