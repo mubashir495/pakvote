@@ -1,4 +1,4 @@
-import Constituency from "../models/Constituency.js";
+import Constituency from "../models/ConstituencyNA.js";
 import slugify from "slugify";
 
 // Create a new Constituancy

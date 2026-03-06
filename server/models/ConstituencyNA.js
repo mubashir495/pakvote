@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
-const ConstituancySchema = new mongoose.Schema({
+const ConstituancyNASchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     unique: true,
     trim: true,
-  },
+  },   
   slug: {
     type: String,
     required: true,
@@ -19,7 +19,8 @@ const ConstituancySchema = new mongoose.Schema({
   required: true
 }
 }, {
+  
   timestamps: true
 });
 
-export default mongoose.model("Constituency", ConstituancySchema);
+export default mongoose.model("ConstituencyNA", ConstituancyNASchema);

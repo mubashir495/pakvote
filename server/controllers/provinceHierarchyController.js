@@ -11,6 +11,7 @@ export const getProvinceHierarchy = async (req, res) => {
           _id: new mongoose.Types.ObjectId(provinceId)
         }
       },
+
       {
         $lookup: {
           from: "divisions",
@@ -19,12 +20,9 @@ export const getProvinceHierarchy = async (req, res) => {
           as: "divisions"
         }
       },
-      {
-        $unwind: {
-          path: "$divisions",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+
+      { $unwind: { path: "$divisions", preserveNullAndEmptyArrays: true } },
+
       {
         $lookup: {
           from: "districts",
@@ -33,12 +31,9 @@ export const getProvinceHierarchy = async (req, res) => {
           as: "divisions.districts"
         }
       },
-      {
-        $unwind: {
-          path: "$divisions.districts",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+
+      { $unwind: { path: "$divisions.districts", preserveNullAndEmptyArrays: true } },
+
       {
         $lookup: {
           from: "tehsils",
@@ -47,20 +42,29 @@ export const getProvinceHierarchy = async (req, res) => {
           as: "divisions.districts.tehsils"
         }
       },
-      {
-        $unwind: {
-          path: "$divisions.districts.tehsils",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+
+      { $unwind: { path: "$divisions.districts.tehsils", preserveNullAndEmptyArrays: true } },
+
+      // NA Constituencies
       {
         $lookup: {
-          from: "constituencies",
+          from: "constituencynas",
           localField: "divisions.districts.tehsils._id",
           foreignField: "tehsil_id",
-          as: "divisions.districts.tehsils.constituencies"
+          as: "divisions.districts.tehsils.na_constituencies"
         }
       },
+
+      // PP Constituencies
+      {
+        $lookup: {
+          from: "constituencypps",
+          localField: "divisions.districts.tehsils._id",
+          foreignField: "tehsil_id",
+          as: "divisions.districts.tehsils.pp_constituencies"
+        }
+      },
+
       {
         $group: {
           _id: {
@@ -69,15 +73,22 @@ export const getProvinceHierarchy = async (req, res) => {
             districtId: "$divisions.districts._id",
             tehsilId: "$divisions.districts.tehsils._id"
           },
+
           provinceName: { $first: "$name" },
           divisionName: { $first: "$divisions.name" },
           districtName: { $first: "$divisions.districts.name" },
           tehsilName: { $first: "$divisions.districts.tehsils.name" },
-          constituencies: {
-            $first: "$divisions.districts.tehsils.constituencies"
+
+          na_constituencies: {
+            $first: "$divisions.districts.tehsils.na_constituencies"
+          },
+
+          pp_constituencies: {
+            $first: "$divisions.districts.tehsils.pp_constituencies"
           }
         }
       }
+
     ]);
 
     res.status(200).json({

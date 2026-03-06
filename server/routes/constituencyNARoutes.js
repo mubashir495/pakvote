@@ -6,7 +6,7 @@ import {
   updateConstituency,
   deleteConstituency,
   getConstituenciesByTehsil,
-} from "../controllers/constituencyController.js";
+} from "../controllers/constituencyNAController.js";
 
 const router = express.Router();
 

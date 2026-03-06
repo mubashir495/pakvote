@@ -6,7 +6,8 @@ import ProvinceRoutes from "./routes/proviceRoutes.js"
 import DistrictRoutes from "./routes/districtRoutes.js"
 import DivisionRoutes from "./routes/divisionRoutes.js"
 import TehsilRoutes from "./routes/tehsilRoutes.js"
-import ConstituencyRoutes from "./routes/constituencyRoutes.js";
+import ConstituencyNARoutes from "./routes/constituencyNARoutes.js";
+import ConstituencyPPRoutes from "./routes/constituencyPPRoutes.js";
 import AuthRouter from "./routes/authRoutes.js";
 import HierarchyRoutes from "./routes/hierarchyRoutes.js";
 import { corsOptions } from "./middlewares/corsmiddlewares.js";
@@ -45,7 +46,8 @@ app.use("/api/division",DivisionRoutes);
 app.use("/api/province",ProvinceRoutes);
 app.use("/api/district",DistrictRoutes);
 app.use("/api/tehsil",TehsilRoutes)
-app.use("/api/constituency",ConstituencyRoutes);
+app.use("/api/constituency-na",ConstituencyNARoutes);
+app.use("/api/constituency-pp",ConstituencyPPRoutes);
 app.use("/api/auth",AuthRouter)
 app.use("/api/hierarchy/",HierarchyRoutes)
 app.use("/api/symbol",SymbolRoutes)

@@ -6,10 +6,9 @@ const generateToken = (user) => {
   return jwt.sign(
     { id: user._id, role: user.role, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" } 
+    { expiresIn: "1d" }
   );
 };
-const secret =    process.env.JWT_SECRET;
 
 export const registerUser = async (req, res) => {
   try {
@@ -20,7 +19,8 @@ export const registerUser = async (req, res) => {
       email,
       password,
       date_of_birth,
-      constituency_id,
+      constituency_na_id,
+      constituency_pp_id,
       role,
     } = req.body;
 
@@ -31,7 +31,8 @@ export const registerUser = async (req, res) => {
       !email ||
       !password ||
       !date_of_birth ||
-      !constituency_id
+      !constituency_na_id ||
+      !constituency_pp_id
     ) {
       return res.status(400).json({
         success: false,
@@ -39,7 +40,6 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // ✅ CNIC as string validation
     if (!/^[0-9]{13}$/.test(cnic_no)) {
       return res.status(400).json({
         success: false,
@@ -68,7 +68,8 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       date_of_birth,
-      constituency_id,
+      constituency_na_id,
+      constituency_pp_id,
       role,
     });
 
@@ -80,6 +81,8 @@ export const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        constituency_na_id: user.constituency_na_id,
+        constituency_pp_id: user.constituency_pp_id,
       },
     });
   } catch (error) {
@@ -118,33 +121,22 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // 🔐 Create JWT
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        email: user.email,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "2h" }
-    );
+    const token = generateToken(user);
 
-    // 🍪 Set cookie (FINAL version)
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+      maxAge: 24 * 60 * 60 * 1000,
       path: "/",
     });
 
-    // Remove password from response
     const { password: _, ...userData } = user._doc;
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: userData, // no token sent to client
+      user: userData,
     });
   } catch (error) {
     console.error(error);
@@ -155,8 +147,6 @@ export const loginUser = async (req, res) => {
   }
 };
 
-
-
 export const verifyUser = async (req, res) => {
   res.status(200).json({
     success: true,
@@ -164,12 +154,12 @@ export const verifyUser = async (req, res) => {
   });
 };
 
-
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .select("-password")
-      .populate("constituency_id");
+      .populate("constituency_na_id")
+      .populate("constituency_pp_id");
 
     res.status(200).json({
       success: true,
@@ -179,7 +169,7 @@ export const getProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch profile",
-      error:error.message
+      error: error.message,
     });
   }
 };
@@ -193,11 +183,13 @@ export const updateUser = async (req, res) => {
       updates.password = await bcrypt.hash(updates.password, salt);
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updates,
-      { new: true }
-    ).select("-password");
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    })
+      .select("-password")
+      .populate("constituency_na_id")
+      .populate("constituency_pp_id");
 
     res.status(200).json({
       success: true,
@@ -208,7 +200,7 @@ export const updateUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Update failed",
-      error:error.message
+      error: error.message,
     });
   }
 };
@@ -218,20 +210,18 @@ export const updateUserById = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    // Hash password if updating
     if (updates.password) {
       const salt = await bcrypt.genSalt(10);
       updates.password = await bcrypt.hash(updates.password, salt);
     }
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      updates,
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).select("-password");
+    const user = await User.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    })
+      .select("-password")
+      .populate("constituency_na_id")
+      .populate("constituency_pp_id");
 
     if (!user) {
       return res.status(404).json({
@@ -245,7 +235,6 @@ export const updateUserById = async (req, res) => {
       message: "User updated successfully",
       user,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -254,7 +243,6 @@ export const updateUserById = async (req, res) => {
     });
   }
 };
-
 
 export const deleteUser = async (req, res) => {
   try {

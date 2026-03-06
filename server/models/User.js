@@ -50,9 +50,14 @@ const UserSchema = new mongoose.Schema(
       default: "user",
     },
 
-    constituency_id: {
+    constituency_na_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Constituency",
+      ref: "ConstituencyNA",
+      required: true,
+    },
+     constituency_pp_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ConstituencyPP",
       required: true,
     },
   },
