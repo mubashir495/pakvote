@@ -96,7 +96,6 @@ export const getAllCandidateApplicants = async (req, res) => {
       .populate("userId", "name email role")
       .populate("party_id", "name")
       .populate("symbol_id", "name image")
-      .populate("voting_area", "name");
 
     res.status(200).json({
       success: true,
@@ -116,7 +115,7 @@ export const getCandidateApplicantById = async (req, res) => {
     const applicant = await Candidate.findById(req.params.id)
       .populate("userId", "name email")
       .populate("party_id", "name")
-      .populate("symbol_id", "name image");
+      .populate("symbol_id", "name image")
 
     if (!applicant) {
       return res.status(404).json({
