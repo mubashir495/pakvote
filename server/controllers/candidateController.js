@@ -5,7 +5,7 @@ import Party from "../models/Party.js";
 import mongoose from "mongoose";
 export const createCandidateApplicant = async (req, res) => {
   try {
-    const { userId, party_id, applied_seats, symbol_id } = req.body;
+    const { userId, party_id, applied_seats, symbol_id ,voting_area } = req.body;
 
     // ✅ Required validation
     if (!userId || !applied_seats) {
@@ -63,6 +63,7 @@ export const createCandidateApplicant = async (req, res) => {
       userId,
       party_id: party_id || null,
       applied_seats,
+      voting_area,
       symbol_id: symbol_id || null,
     });
 
@@ -94,7 +95,8 @@ export const getAllCandidateApplicants = async (req, res) => {
     const applicants = await Candidate.find()
       .populate("userId", "name email role")
       .populate("party_id", "name")
-      .populate("symbol_id", "name image");
+      .populate("symbol_id", "name image")
+      .populate("voting_area", "name");
 
     res.status(200).json({
       success: true,

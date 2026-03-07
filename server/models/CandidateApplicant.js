@@ -7,33 +7,52 @@ const CandidateApplicantSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
     Degree_names: {
       type: [String],
       required: true,
     },
+
     Degree_Documents: {
-      type: [String], 
-      required: true, 
+      type: [String],
+      required: true,
     },
+
     party_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Party", 
+      ref: "Party",
       required: false,
     },
+
     applied_seats: {
       type: String,
       enum: ["MPA", "MNA"],
       required: true,
     },
+
+    // Voting Area (NA or PP depending on seat)
+    voting_area: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: "voting_area_model",
+    },
+
+    voting_area_model: {
+      type: String,
+      required: true,
+      enum: ["ConstituencyNA", "ConstituencyPP"],
+    },
+
     notes: {
-      type: String, 
+      type: String,
       required: true,
     },
-    status:{
+
+    status: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
-      default: "Pending"
-    }
+      default: "Pending",
+    },
   },
   { timestamps: true }
 );

@@ -6,24 +6,31 @@ const CandidateSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique:true
+      unique: true,
     },
+
     party_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Party", 
-      required: false,
+      ref: "Party",
+      default: null,
     },
+
     applied_seats: {
       type: String,
       enum: ["MPA", "MNA"],
       required: true,
     },
-    symbol_id:{
+
+    voting_area: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Symbol", 
-      required: false,
-      default: null
-    }
+      required: true,
+      refPath: "voting_area_model",
+    },
+    symbol_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Symbol",
+      default: null,
+    },
   },
   { timestamps: true }
 );
