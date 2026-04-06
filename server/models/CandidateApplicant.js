@@ -6,22 +6,25 @@ const CandidateApplicantSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      unique: true 
     },
 
-    Degree_names: {
-      type: [String],
-      required: true,
-    },
-
-    Degree_Documents: {
-      type: [String],
-      required: true,
-    },
+    degrees: [
+      {
+        name: { type: String, required: true },
+        document: { type: String, required: true },
+      },
+    ],
 
     party_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Party",
-      required: false,
+      default: null,
+    },
+
+    isIndependent: {
+      type: Boolean,
+      default: false,
     },
 
     applied_seats: {
@@ -30,7 +33,6 @@ const CandidateApplicantSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Voting Area (NA or PP depending on seat)
     voting_area: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -43,15 +45,38 @@ const CandidateApplicantSchema = new mongoose.Schema(
       enum: ["ConstituencyNA", "ConstituencyPP"],
     },
 
-    notes: {
+    assets: {
       type: String,
       required: true,
+    },
+
+    hasCriminalRecord: {
+      type: Boolean,
+      default: false,
+    },
+
+    criminalDetails: {
+      type: String,
+      default: "",
+    },
+
+    notes: {
+      type: String,
     },
 
     status: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
+    },
+
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    approvedAt: {
+      type: Date,
     },
   },
   { timestamps: true }

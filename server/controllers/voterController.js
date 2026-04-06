@@ -15,22 +15,22 @@ export const castVote = async (req, res) => {
     const voter = await User.findById(userID);
     if (!voter) return res.status(404).json({ message: "Voter not found" });
 
-    if (!voter.constituency_id) {
-      return res.status(400).json({ message: "Voter constituency not found" });
+    if (!voter.constituency_na_id && !voter.constituency_pp_id) {
+      return res.status(400).json({ message: "Voter constiteuncy not found" });
     }
 
     const candidate = await Candidate.findById(candidateID);
-    if (!candidate)
-      return res.status(404).json({ message: "Candidate not found" });
+    if (!candidate) return res.status(404).json({ message: "Candidate not found" });
 
-    const candidateUser = await User.findById(candidate.userId);
-    if (!candidateUser)
-      return res.status(404).json({ message: "Candidate user not found" });
+    // Validate the voter resides in the exact constituency the candidate is running in
+    let isVoterEligible = false;
+    if (candidate.applied_seats === "MNA" && voter.constituency_na_id?.toString() === candidate.voting_area?.toString()) {
+      isVoterEligible = true;
+    } else if (candidate.applied_seats === "MPA" && voter.constituency_pp_id?.toString() === candidate.voting_area?.toString()) {
+      isVoterEligible = true;
+    }
 
-    if (
-      voter.constituency_id.toString() !==
-      candidateUser.constituency_id.toString()
-    ) {
+    if (!isVoterEligible) {
       return res.status(400).json({
         message: "You cannot vote outside your constituency",
       });
@@ -48,7 +48,7 @@ export const castVote = async (req, res) => {
     const vote = new Vote({
       userID,
       candidateID,
-      constituencyID: voter.constituency_id,
+      constituencyID: candidate.voting_area,
       position,
     });
 

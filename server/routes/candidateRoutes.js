@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  createCandidateApplicant,
+  createCandidate,
   getAllCandidateApplicants,
   getCandidateApplicantById,
   getCandidatesByParty,
@@ -9,18 +9,18 @@ import {
   deleteCandidateApplicant,
   getCandidateByUserId,
   getPartyCandidatesByUser,
-  getCandidatesByConstituency ,
+  getCandidatesByBothConstituencies,
 } from "../controllers/candidateController.js";
 
 import { protect } from "../middlewares/authMiddlewares.js";
 import { adminOnly, partyOnly } from "../middlewares/isRoleMiddleware.js";
 const router = express.Router();
-router.post("/", protect, createCandidateApplicant);
+router.post("/", protect, createCandidate);
 router.get("/", protect, adminOnly, getAllCandidateApplicants);
 router.get("/party/:partyID", protect, getCandidatesByParty);
 router.get("/independent",  getIndependentCandidates);
+router.get("/by-constituencies", getCandidatesByBothConstituencies);
 router.get("/:id", protect, adminOnly, getCandidateApplicantById);
-router.get("/constituency-base/:constituencyId", getCandidatesByConstituency);
 router.put("/:id", protect, adminOnly, updateCandidateApplicant);
 router.delete("/:id", protect, adminOnly, deleteCandidateApplicant);
 router.get("/party-depandance/:userId" , getPartyCandidatesByUser);

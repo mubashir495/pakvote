@@ -10,12 +10,14 @@ import {
 import { partyUpload } from "../utils/upload.js";
 import { protect } from "../middlewares/authMiddlewares.js";
 import { adminOnly } from "../middlewares/isRoleMiddleware.js";
+import { checkPhaseMiddleware } from "../controllers/settingsController.js";
 
 const router = express.Router();
 
 router.post(
   "/",
   protect,
+  checkPhaseMiddleware("party"),
   partyUpload.fields([
     { name: "payement_prof", maxCount: 1 },
     { name: "party_constitution_document", maxCount: 1 },

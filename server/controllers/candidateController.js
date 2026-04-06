@@ -3,105 +3,92 @@ import User from "../models/User.js";
 import Symbol from "../models/Symbol.js";
 import Party from "../models/Party.js";
 import mongoose from "mongoose";
-export const createCandidateApplicant = async (req, res) => {
+import Vote from "../models/Votes.js";
+
+
+// CREATE CANDIDATE
+export const createCandidate = async (req, res) => {
   try {
-    const { userId, party_id, applied_seats, symbol_id ,voting_area } = req.body;
-
-    // ✅ Required validation
-    if (!userId || !applied_seats) {
-      return res.status(400).json({
-        success: false,
-        message: "userId and applied_seats are required",
+    const { userId, party_id, symbol_id, voting_area, applied_seats, voting_area_model } = req.body;
+    const alreadyCandidate = await Candidate.findOne({ userId });
+    if (alreadyCandidate) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "This user is already registered as a candidate." 
       });
     }
 
-    if (!["MPA", "MNA"].includes(applied_seats)) {
-      return res.status(400).json({
-        success: false,
-        message: "applied_seats must be MPA or MNA",
-      });
-    }
+    let assignedSymbol = null;
 
-    // ✅ Independent candidate must have symbol
-    if (!party_id && !symbol_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Independent candidates must have a symbol",
-      });
-    }
-
-    // ✅ Prevent duplicate application
-    const alreadyApplied = await Candidate.findOne({ userId });
-    if (alreadyApplied) {
-      return res.status(409).json({
-        success: false,
-        message: "User already applied as candidate",
-      });
-    }
-
-    // ✅ If independent, check symbol exists
-    if (symbol_id) {
-      const symbolExists = await Symbol.findById(symbol_id);
-      if (!symbolExists) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid symbol selected",
+    // 2. INDEPENDENT VS PARTY LOGIC
+    if (!party_id) {
+      // Rule: Independent MUST have a symbol
+      if (!symbol_id) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Independent candidates must select a symbol." 
         });
       }
 
-      const symbolUsed = await Candidate.findOne({ symbol_id });
-      if (symbolUsed) {
-        return res.status(409).json({
-          success: false,
-          message: "Symbol already assigned",
+      // 3. CONSTITUENCY SYMBOL CHECK: 
+      // Rule: Same area + Same seat + Same symbol = NOT ALLOWED
+      const symbolConflict = await Candidate.findOne({
+        symbol_id: symbol_id,
+        voting_area: voting_area,
+        applied_seats: applied_seats
+      });
+
+      if (symbolConflict) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "This symbol is already taken by another candidate in this constituency." 
         });
       }
+      
+      assignedSymbol = symbol_id;
+    } else {
+      // Rule: Party candidates don't store a personal symbol_id
+      assignedSymbol = null;
     }
 
-    // ✅ Create candidate
-    const applicant = await Candidate.create({
+    // 4. SAVE TO DATABASE
+    const newCandidate = await Candidate.create({
       userId,
       party_id: party_id || null,
-      applied_seats,
+      symbol_id: assignedSymbol,
       voting_area,
-      symbol_id: symbol_id || null,
+      applied_seats,
+      voting_area_model
     });
 
-    // ✅ Update user role
-    await User.findByIdAndUpdate(userId, { role: "candidate" });
-
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: "Candidate application created",
-      data: applicant,
+      message: "Candidate registered successfully",
+      data: newCandidate
     });
 
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Duplicate value detected (symbol or user already exists)",
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Server Error",
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
-};
+};   
+// GET ALL CANDIDATES
 export const getAllCandidateApplicants = async (req, res) => {
   try {
+
     const applicants = await Candidate.find()
-      .populate("userId", "name email role")
-      .populate("party_id", "name")
-      .populate("symbol_id", "name image")
+      .populate([
+        { path: "userId", select: "name email role" },
+        { path: "party_id", select: "party_name" },
+        { path: "symbol_id", select: "name image" },
+        { path: "voting_area", select: "name" }
+      ]);
 
     res.status(200).json({
       success: true,
       count: applicants.length,
       data: applicants,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -110,17 +97,24 @@ export const getAllCandidateApplicants = async (req, res) => {
   }
 };
 
+
+
+// GET BY ID
 export const getCandidateApplicantById = async (req, res) => {
   try {
+
     const applicant = await Candidate.findById(req.params.id)
-      .populate("userId", "name email")
-      .populate("party_id", "name")
-      .populate("symbol_id", "name image")
+      .populate([
+        { path: "userId", select: "name email role" },
+        { path: "party_id", select: "party_name" },
+        { path: "symbol_id", select: "name image" },
+        { path: "voting_area", select: "name" }
+      ]);
 
     if (!applicant) {
       return res.status(404).json({
         success: false,
-        message: "Candidate applicant not found",
+        message: "Candidate not found",
       });
     }
 
@@ -128,6 +122,7 @@ export const getCandidateApplicantById = async (req, res) => {
       success: true,
       data: applicant,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -136,16 +131,13 @@ export const getCandidateApplicantById = async (req, res) => {
   }
 };
 
+
+
+// GET BY PARTY
 export const getCandidatesByParty = async (req, res) => {
   try {
-    const { partyID } = req.params;
 
-    if (!partyID) {
-      return res.status(400).json({
-        success: false,
-        message: "Party ID is required",
-      });
-    }
+    const { partyID } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(partyID)) {
       return res.status(400).json({
@@ -154,12 +146,13 @@ export const getCandidatesByParty = async (req, res) => {
       });
     }
 
-    const candidates = await Candidate.find({
-      party_id: partyID,
-    })
-      .populate("userId", "name email")
-      .populate("party_id", "name")
-      .populate("symbol_id", "name image");
+    const candidates = await Candidate.find({ party_id: partyID })
+      .populate([
+        { path: "userId", select: "name email role" },
+        { path: "party_id", select: "party_name" },
+        { path: "symbol_id", select: "name image" },
+        { path: "voting_area", select: "name" }
+      ]);
 
     res.status(200).json({
       success: true,
@@ -168,36 +161,50 @@ export const getCandidatesByParty = async (req, res) => {
     });
 
   } catch (error) {
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
+
+
+// INDEPENDENT CANDIDATES
 export const getIndependentCandidates = async (req, res) => {
   try {
-    const candidates = await CandidateApplicant.find({
-      party_id: null,
-    })
-      .populate("userId", "name email")
-      .populate("symbol_id", "name image");
+
+    const candidates = await Candidate.find({ party_id: null })
+      .populate([
+        { path: "userId", select: "name email role" },
+        { path: "symbol_id", select: "name image" },
+        { path: "voting_area", select: "name" }
+      ]);
 
     res.status(200).json({
       success: true,
       data: candidates,
     });
+
   } catch (error) {
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
+
+
+// UPDATE
 export const updateCandidateApplicant = async (req, res) => {
   try {
-    const updated = await CandidateApplicant.findByIdAndUpdate(
+
+    const updated = await Candidate.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
@@ -206,64 +213,78 @@ export const updateCandidateApplicant = async (req, res) => {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        message: "Candidate applicant not found",
+        message: "Candidate not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Candidate applicant updated",
+      message: "Candidate updated",
       data: updated,
     });
+
   } catch (error) {
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
+
+
+// DELETE
 export const deleteCandidateApplicant = async (req, res) => {
   try {
-    const applicant = await CandidateApplicant.findById(req.params.id);
+
+    const applicant = await Candidate.findById(req.params.id);
 
     if (!applicant) {
       return res.status(404).json({
         success: false,
-        message: "Candidate applicant not found",
+        message: "Candidate not found",
       });
     }
 
-    // 🔄 revert user role
     await User.findByIdAndUpdate(applicant.userId, { role: "user" });
 
     await applicant.deleteOne();
 
     res.status(200).json({
       success: true,
-      message: "Candidate applicant deleted & role reverted",
+      message: "Candidate deleted & role reverted",
     });
+
   } catch (error) {
+
     res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
+
+
+// GET CANDIDATE BY USER ID
 export const getCandidateByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
 
     const candidate = await Candidate.findOne({ userId })
+      .populate("userId", "name cnic_no email")
       .populate({
         path: "party_id",
+        model: "Party", // ✅ FIXED
         populate: [
-          { path: "symbol_id", model: "Symbol" },  
-          { path: "admin_id", model: "User" }      
-        ]
+          { path: "party_Symbol", model: "Symbol" },
+          { path: "userId", model: "User", select: "_id name email" } // ✅ party owner
+        ],
       })
-      .populate("symbol_id"); 
+      .populate("symbol_id");
 
     if (!candidate) {
       return res.status(404).json({
@@ -275,102 +296,117 @@ export const getCandidateByUserId = async (req, res) => {
     let responseData = {
       candidateId: candidate._id,
       applied_seats: candidate.applied_seats,
+
+      user: {
+        name: candidate.userId?.name || null,
+        cnic_no: candidate.userId?.cnic_no || null,
+      },
     };
 
-    if (candidate.party_id) {
+    // ✅ PARTY CASE
+    if (candidate.party_id && candidate.party_id._id) {
+      responseData.type = "party";
+
       responseData.party = {
-        partyName: candidate.party_id.name,
-        partySymbol: candidate.party_id.symbol_id?.name || null,
-        partyAdminName: candidate.party_id.admin_id?.name || null,
+        partyId: candidate.party_id._id, // ✅ added
+        partyUserId: candidate.party_id.userId?._id || null, // ✅ added
+        partyName: candidate.party_id.party_name,
+
+        partySymbol: {
+          name: candidate.party_id.party_Symbol?.name || null,
+          image: candidate.party_id.party_Symbol?.image || null,
+        },
+
+        partyAdminName: candidate.party_id.party_admin_name || null,
       };
+
     } 
+    // ✅ INDEPENDENT CASE
     else {
+      responseData.type = "independent";
+
       responseData.independent = {
-        symbol: candidate.symbol_id?.name || null,
+        symbol: {
+          name: candidate.symbol_id?.name || null,
+          image: candidate.symbol_id?.image || null,
+        },
       };
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: responseData,
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("ERROR ", error);
+
+    return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: error.message,
     });
   }
 };
-
-
-export const getCandidatesByConstituency = async (req, res) => {
+// get candidate by constituency
+export const getCandidatesByBothConstituencies = async (req, res) => {
   try {
-    const { constituencyId } = req.params;
+    const { naId, ppId } = req.query; 
 
-    if (!constituencyId) {
-      return res.status(400).json({
-        success: false,
-        message: "Constituency ID is required"
-      });
+    const orConditions = [];
+    if (naId) orConditions.push({ voting_area: naId });
+    if (ppId) orConditions.push({ voting_area: ppId });
+
+    if (orConditions.length === 0) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
     }
 
-    const users = await User.find({ constituency_id: constituencyId }).select("_id");
-    const userIds = users.map(u => u._id);
-
-    const candidates = await Candidate.find({ userId: { $in: userIds } })
-      .populate({
+    const candidates = await Candidate.find({
+      $or: orConditions
+    })
+    .populate([
+      { path: "userId", select: "name father_name cnic_no email constituency_na_id constituency_pp_id" },
+      { path: "symbol_id", select: "name image" },
+      {
         path: "party_id",
         select: "party_name party_Symbol",
         populate: {
           path: "party_Symbol",
           select: "name image"
         }
+      }
+    ]).lean();
+
+    const candidatesWithVotes = await Promise.all(
+      candidates.map(async (candidate) => {
+        const totalVotes = await Vote.countDocuments({ candidateID: candidate._id });
+        return { ...candidate, totalVotes };
       })
-      .populate("symbol_id", "name image")
-      .populate("userId", "name father_name cnic_no email");
+    );
 
-    const formatted = candidates.map(candidate => {
-      const isParty = candidate.party_id !== null;
-
-      return {
-        _id: candidate._id,
-        applied_seats: candidate.applied_seats,
-        user: candidate.userId,
-        party_name: isParty ? candidate.party_id.party_name : null,
-        symbol: isParty
-          ? candidate.party_id.party_Symbol
-          : candidate.symbol_id
-      };
-    });
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      data: formatted
+      count: candidatesWithVotes.length,
+      data: candidatesWithVotes
     });
+
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      message: "Server Error",
-      error: error.message
+      message: error.message,
     });
   }
 };
 
 
+// GET PARTY CANDIDATES BY USER
 export const getPartyCandidatesByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID is required",
-      });
-    }
-
+console.log("USER ID:", userId);
+console.log("Is valid ObjectId?", mongoose.Types.ObjectId.isValid(userId));
+console.log(req.params);
+    
+    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
@@ -378,8 +414,8 @@ export const getPartyCandidatesByUser = async (req, res) => {
       });
     }
 
-    // 🔹 Step 1: Find Party using userId
-    const party = await Party.findOne({ userId: userId });
+    // Find party by user
+    const party = await Party.findOne({ userId });
 
     if (!party) {
       return res.status(404).json({
@@ -388,21 +424,33 @@ export const getPartyCandidatesByUser = async (req, res) => {
       });
     }
 
-    // 🔹 Step 2: Find all candidates of that party
-   const candidates = await Candidate.find({
-  party_id: party._id,
+    // Get candidates of this party
+    const candidates = await Candidate.find({ party_id: party._id })
+      .populate({
+        path: "userId",
+        select: "name email constituency_id",
+      })
+      .populate({
+  path: "userId",
+  select: "name email constituency_na_id constituency_pp_id",
+  populate: [
+    {
+      path: "constituency_na_id",
+      select: "name",
+    },
+    {
+      path: "constituency_pp_id",
+      select: "name",
+    },
+  ],
 })
-  .populate({
-    path: "userId",
-    select: "name email constituency_id",
-    populate: {
-      path: "constituency_id",
-      select: "name",   
-      },
-  })
-  .populate("party_id", "party_name party_admin_name")
-  .populate("symbol_id", "name image");
-    res.status(200).json({
+    
+      .populate([
+        { path: "party_id", select: "party_name" },
+        { path: "symbol_id", select: "name image" },
+      ]);
+
+    return res.status(200).json({
       success: true,
       total: candidates.length,
       party: party.party_name,
@@ -410,7 +458,7 @@ export const getPartyCandidatesByUser = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });

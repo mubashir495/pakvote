@@ -17,7 +17,7 @@ router.post("/", protect, adminOnly, createParty);
 router.get("/", getAllParties);
 router.get("/user/:userId", getPartyByUserId);
 router.get("/:id", getSingleParty);
-router.put("/:id",adminOnly, protect, updateParty);
+router.put("/:id", protect,adminOnly, updateParty);
 router.delete("/:id", protect, adminOnly, deleteParty);
 
 export default router;

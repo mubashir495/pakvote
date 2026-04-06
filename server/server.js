@@ -22,7 +22,8 @@ import PartyRoutes from "./routes/partyRoutes.js"
 import ContactRoutes from "./routes/contactRoutes.js"
 import ComplaintRoutes from "./routes/complaintRoutes.js"
 import VoteRoutes from "./routes/votesRoutes.js"
-
+import BroadcastRoutes from "./routes/BroadcastRoutes.js";
+import SettingsRoutes from "./routes/settingsRoutes.js";
 
 
 
@@ -55,9 +56,12 @@ app.use("/api/partyApplicant",PartySymbol)
 app.use("/api/candidate",CandidateRoutes)
 app.use("/api/party",PartyRoutes)
 app.use("/api/contect-us",ContactRoutes)
-app.use("/api/candidateApplicant",CandidateApplicantRoutes)
+app.use("/api/candidate-applicant",CandidateApplicantRoutes)
 app.use("/api/complaint", ComplaintRoutes);
 app.use("/api/vote", VoteRoutes);
+app.use("/api/messages", BroadcastRoutes);
+app.use("/api/settings", SettingsRoutes);
+
 
 app.listen(PORT, () => {
   console.log(` Server running at http://localhost:${PORT}`);
