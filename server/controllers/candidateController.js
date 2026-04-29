@@ -464,3 +464,105 @@ console.log(req.params);
     });
   }
 };
+
+// GET OWN PROFILE (Candidate)
+export const getMyProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const candidate = await Candidate.findOne({ userId })
+      .populate("userId", "name cnic_no email")
+      .populate({
+        path: "party_id",
+        model: "Party", 
+        populate: [
+          { path: "party_Symbol", model: "Symbol" },
+          { path: "userId", model: "User", select: "_id name email" } 
+        ],
+      })
+      .populate("symbol_id");
+
+    if (!candidate) {
+      return res.status(404).json({ success: false, message: "Candidate not found" });
+    }
+
+    let responseData = {
+      candidateId: candidate._id,
+      applied_seats: candidate.applied_seats,
+      user: {
+        name: candidate.userId?.name || null,
+        cnic_no: candidate.userId?.cnic_no || null,
+        email: candidate.userId?.email || null,
+      },
+    };
+
+    if (candidate.party_id && candidate.party_id._id) {
+      responseData.type = "party";
+      responseData.party = {
+        partyId: candidate.party_id._id, 
+        partyUserId: candidate.party_id.userId?._id || null, 
+        partyName: candidate.party_id.party_name,
+        partySymbol: {
+          name: candidate.party_id.party_Symbol?.name || null,
+          image: candidate.party_id.party_Symbol?.image || null,
+        },
+        partyAdminName: candidate.party_id.party_admin_name || null,
+      };
+    } else {
+      responseData.type = "independent";
+      responseData.independent = {
+        symbol: {
+          name: candidate.symbol_id?.name || null,
+          image: candidate.symbol_id?.image || null,
+        },
+      };
+    }
+
+    return res.status(200).json({ success: true, data: responseData });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET CANDIDATE OWN MPA RESULT
+export const getCandidateOwnResult = async (req, res) => {
+  try {
+     const candidate = await Candidate.findOne({ userId: req.user._id })
+       .populate("voting_area", "name");
+     if (!candidate) return res.status(404).json({ success: false, message: "Candidate not found" });
+
+     if (candidate.applied_seats !== 'MPA') {
+       return res.status(400).json({ success: false, message: "You are not an MPA candidate" });
+     }
+
+     const results = await Vote.aggregate([
+        { $match: { constituencyID: candidate.voting_area._id, position: candidate.applied_seats } },
+        { $group: { _id: "$candidateID", votes: { $sum: 1 } } },
+        { $sort: { votes: -1 } }
+     ]);
+
+     let status = "Pending";
+     let myVotes = 0;
+     let winner = null;
+     if (results.length > 0) {
+       winner = results[0]._id.toString();
+       const myResult = results.find(r => r._id.toString() === candidate._id.toString());
+       myVotes = myResult ? myResult.votes : 0;
+       status = (winner === candidate._id.toString()) ? "Winner" : "Lost";
+     }
+
+     res.status(200).json({
+       success: true,
+       data: {
+         applied_seat: candidate.applied_seats,
+         constituency: candidate.voting_area.name,
+         myVotes,
+         status,
+         won: winner === candidate._id.toString()
+       }
+     });
+  } catch(error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

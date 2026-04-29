@@ -1,4 +1,6 @@
 import Party from "../models/Party.js";
+import Candidate from "../models/Candidate.js";
+import Vote from "../models/Votes.js";
 import mongoose from "mongoose";
 
 export const createParty = async (req, res) => {
@@ -192,5 +194,82 @@ export const getPartyByUserId = async (req, res) => {
       success: false,
       message: "Internal Server Error",
     });
+  }
+};
+
+// get all candidates of my party
+export const getMyPartyCandidates = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const party = await Party.findOne({ userId });
+
+    if (!party) {
+       return res.status(404).json({ success: false, message: "Party not found" });
+    }
+
+    const candidates = await Candidate.find({ party_id: party._id })
+      .populate("userId", "name email cnic_no")
+      .populate("voting_area", "name")
+      .populate("symbol_id", "name image");
+
+    res.status(200).json({ success: true, count: candidates.length, data: candidates });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// get mpa results for party's candidates
+export const getMyPartyMPAResults = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const party = await Party.findOne({ userId });
+
+    if (!party) {
+       return res.status(404).json({ success: false, message: "Party not found" });
+    }
+
+    const candidates = await Candidate.find({ party_id: party._id, applied_seats: "MPA" })
+      .populate("userId", "name")
+      .populate("voting_area", "name");
+
+    const results = [];
+
+    for (let candidate of candidates) {
+       const constituencyID = candidate.voting_area ? candidate.voting_area._id : null;
+       if (!constituencyID) continue;
+
+       const votesAggr = await Vote.aggregate([
+          { $match: { constituencyID: constituencyID, position: "MPA" } },
+          { $group: { _id: "$candidateID", votes: { $sum: 1 } } },
+          { $sort: { votes: -1 } }
+       ]);
+
+       let myVotes = 0;
+       let status = "Pending/Lost";
+       if (votesAggr.length > 0) {
+          const winnerId = votesAggr[0]._id.toString();
+          const myResult = votesAggr.find(r => r._id.toString() === candidate._id.toString());
+          if (myResult) {
+            myVotes = myResult.votes;
+          }
+          if (winnerId === candidate._id.toString()) {
+            status = "Winner";
+          } else {
+            status = "Lost";
+          }
+       }
+
+       results.push({
+          candidateId: candidate._id,
+          candidateName: candidate.userId ? candidate.userId.name : "Unknown",
+          constituency: candidate.voting_area ? candidate.voting_area.name : "Unknown",
+          votes: myVotes,
+          status: status
+       });
+    }
+
+    res.status(200).json({ success: true, count: results.length, data: results });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
