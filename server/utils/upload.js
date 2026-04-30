@@ -61,7 +61,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// ========== DEGREES UPLOAD ==========
+//DEGREES UPLOAD 
 const degreeDir = "./uploads/degrees";
 if (!fs.existsSync(degreeDir)) {
   fs.mkdirSync(degreeDir, { recursive: true });
@@ -94,7 +94,7 @@ export const upload = multer({
   fileFilter: degreeFileFilter,
 });
 
-// ========== SYMBOLS UPLOAD ==========
+// SYMBOLS UPLOAD 
 const symbolDir = "./uploads/symbols";
 if (!fs.existsSync(symbolDir)) {
   fs.mkdirSync(symbolDir, { recursive: true });
@@ -123,7 +123,6 @@ export const symbolUpload = multer({
 const uploadDir = "uploads/party";
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // create folder if not exists
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

@@ -12,7 +12,8 @@
   "main": "server.js",
   "scripts": {
     "server": "nodemon run server",
-    "test": "nodemon run text.js"
+    "test": "nodemon run text.js",
+    "db:backup": "node scripts/db_backup.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

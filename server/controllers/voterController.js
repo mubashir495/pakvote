@@ -9,7 +9,7 @@ export const castVote = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userID = req.user._id;   // ✅ FIXED
+    const userID = req.user._id;
     const { candidateID } = req.body;
 
     const voter = await User.findById(userID);
@@ -22,7 +22,6 @@ export const castVote = async (req, res) => {
     const candidate = await Candidate.findById(candidateID);
     if (!candidate) return res.status(404).json({ message: "Candidate not found" });
 
-    // Validate the voter resides in the exact constituency the candidate is running in
     let isVoterEligible = false;
     if (candidate.applied_seats === "MNA" && voter.constituency_na_id?.toString() === candidate.voting_area?.toString()) {
       isVoterEligible = true;
@@ -172,5 +171,114 @@ export const getFullConstituencyResults = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+export const getAdminElectionResults = async (req, res) => {
+  try {
+    const totalVotes = await Vote.countDocuments();
+    
+    // Party-wise votes
+    const partyWiseVotesResult = await Vote.aggregate([
+      {
+        $lookup: {
+          from: "candidates",
+          localField: "candidateID",
+          foreignField: "_id",
+          as: "candidate"
+        }
+      },
+      { $unwind: "$candidate" },
+      {
+        $lookup: {
+          from: "parties",
+          localField: "candidate.party_id",
+          foreignField: "_id",
+          as: "party"
+        }
+      },
+      {
+        $unwind: { path: "$party", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $group: {
+          _id: { $ifNull: ["$party._id", "Independent"] },
+          partyName: { $first: { $ifNull: ["$party.party_name", "Independent"] } },
+          votes: { $sum: 1 }
+        }
+      },
+      { $sort: { votes: -1 } }
+    ]);
+
+    // Candidate-wise votes
+    const candidateWiseVotesResult = await Vote.aggregate([
+      {
+        $group: {
+          _id: "$candidateID",
+          votes: { $sum: 1 },
+          position: { $first: "$position" },
+          constituencyID: { $first: "$constituencyID" }
+        }
+      },
+      {
+        $lookup: {
+          from: "candidates",
+          localField: "_id",
+          foreignField: "_id",
+          as: "candidate"
+        }
+      },
+      { $unwind: "$candidate" },
+      {
+        $lookup: {
+          from: "users",
+          localField: "candidate.userId",
+          foreignField: "_id",
+          as: "candidateUser"
+        }
+      },
+      { $unwind: "$candidateUser" },
+      {
+        $lookup: {
+          from: "parties",
+          localField: "candidate.party_id",
+          foreignField: "_id",
+          as: "party"
+        }
+      },
+      {
+        $unwind: { path: "$party", preserveNullAndEmptyArrays: true }
+      },
+      {
+        $project: {
+          candidateID: "$_id",
+          candidateName: "$candidateUser.name",
+          partyName: { $ifNull: ["$party.party_name", "Independent"] },
+          position: 1,
+          votes: 1,
+          constituencyID: 1
+        }
+      },
+      { $sort: { votes: -1 } }
+    ]);
+    
+    // Group winners per constituency
+    const winners = {};
+    candidateWiseVotesResult.forEach(c => {
+       const key = c.position + "_" + c.constituencyID;
+       if (!winners[key]) {
+         winners[key] = c;
+       }
+    });
+
+    res.json({
+      success: true,
+      totalVotes,
+      partyWiseVotes: partyWiseVotesResult,
+      candidateWiseVotes: candidateWiseVotesResult,
+      winners: Object.values(winners)
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
